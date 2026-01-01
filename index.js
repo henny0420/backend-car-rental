@@ -28,4 +28,6 @@ app.use('/role',ROUTES.ROLE)
 
 app.use('/brand',ROUTES.BRAND)
 
+app.use('/car',ROUTES.CAR)
+
 

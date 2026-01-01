@@ -18,6 +18,7 @@ const auth = (isTokenRequired = true , userAllowed = []) => {
         const allow_user = userAllowed.find((role)=> role=== user.role)
         
         if(allow_user){
+            req.user=user;
             next()
         }else{
                 return res.json({

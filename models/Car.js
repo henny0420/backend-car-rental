@@ -10,7 +10,7 @@ const CarSchema = new Schema({
     },
     brand:{
         type:objId,
-        ref : 'Brand',
+        ref :'brands',
         required:true,
     },
     model : {
