@@ -14,7 +14,6 @@ const auth = (isTokenRequired = true , userAllowed = []) => {
         const verify_user= await jwt.verify(token,secret)
         
         const user = await DB.USER.findById(verify_user._id)
-        console.log(user);
         const allow_user = userAllowed.find((role)=> role=== user.role)
         
         if(allow_user){

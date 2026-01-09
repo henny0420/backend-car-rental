@@ -7,6 +7,7 @@ var jwt = require('jsonwebtoken');
 const ConnectDB = require('./db/dbConnection');
 const { error } = require('console');
 const ROUTES = require('./routes')
+const multer =require("multer");
 
 
 ConnectDB()

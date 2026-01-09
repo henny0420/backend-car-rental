@@ -1,7 +1,11 @@
+const { cloudinary } = require('../config/cloudinary.JS');
+const { uploadOnCloudinary } = require('../config/cloudinary.JS')
 const DB = require('./../models')
 
 //-----ADD CAR -----------------------------------------------------//
 const AddCarController = async (req, res) => {
+  console.log("BODY:", req.body);
+
   try {
     const {
       name,
@@ -14,9 +18,45 @@ const AddCarController = async (req, res) => {
       location,
     } = req.body
 
+    // for single file upload
+    // const cloudinaryResult= await uploadOnCloudinary(req.file.path)
+    //     console.log("CLOUDINARY:", cloudinaryResult.secure_url);
+
+    
+    //----------for files more than 1 --------------------
+    // const upload_images = req.files.map((val) => uploadOnCloudinary(val.path))
+    // const upload_result =  await Promise.all(upload_images)
+    // console.log("upload_image",upload_result);
+    
+
+    // const images = upload_result.map((val) => ({
+    //   url : val.secure_url,
+    //   public_id : val.public_id
+    // }))
+    // console.log("images",images);
+
+    // ----- for cover images and gallery images -------------
+    
+    const cover_image = req.files.coverImage
+    const gallery_images = req.files.galleryImages
+
+
+    const cover_result = await Promise.all(cover_image.map((val) => uploadOnCloudinary(val.path)))
+
+    const gallery_result = await Promise.all(
+        gallery_images.map((val) => uploadOnCloudinary(val.path))
+      )
+
+      const cover_image_data = {
+      url: cover_result[0].secure_url,
+      public_id: cover_result[0].public_id
+}
+    const gallery_images_data = gallery_result.map((val) => ({url : val.secure_url , public_id : val.public_id}))
     if (!features) {
       return res.status(400).json({ message: "Features are required" })
     }
+console.log("Gallery files:", req.files?.galleryImages);
+console.log("Gallery data:", gallery_images_data);
 
     const car = await DB.CAR.create({
       name,
@@ -35,14 +75,27 @@ const AddCarController = async (req, res) => {
       pricePerHour,
       registrationNumber,
       location,
-      images,
+
+      // ---------for single image ----------------
+      // image:{
+      //   url :cloudinaryResult.secure_url,
+      //   public_id : cloudinaryResult.public_id
+      // },
+
+      // --------------for multiple image --------------------
+      // image:images,
+
+      // --------for cover image and gallery images ---------
+      coverImage: cover_image_data,
+      galleryImages: gallery_images_data,
+
       createdBy: req.user?._id   
     })
 
     return res.status(201).json({
       success: true,
       message: "Car added successfully",
-      car
+      car,
     })
 
   } catch (error) {
@@ -71,7 +124,7 @@ const GetAllCarsController = async function(req,res){
             .skip(skip)
             .limit(limit)
 
-        const total_cars = await DB.CAR.countDocuments({isActive:true})
+        const total_cars = await DB.CAR.countDocuments({isActive:true   })
             if(!cars) return res.status(400).json({
                 success : false,
                 message : 'there is no car data to fetch'
@@ -99,7 +152,25 @@ const DeleteCarContoller = async function(req,res){
     try {
     const { id } = req.params
 
-    const deletedCar = await DB.CAR.findByIdAndUpdate(
+    const car = await DB.CAR.findById(id);
+    if (!car) {
+      return res.status(404).json({
+        success: false,
+        message: "Car not found"
+      });
+    }
+     if (car.coverImage?.public_id) {
+      await cloudinary.uploader.destroy(car.coverImage.public_id);
+    }
+
+    if (car.galleryImages?.length > 0) {
+      for (const img of car.galleryImages) {
+        if (img.public_id) {
+          await cloudinary.uploader.destroy(img.public_id);
+        }
+      }
+    }
+    const deletedCar = await DB.CAR.findByIdAndDelete(
       id,
       { isActive: false },
       { new: true }
